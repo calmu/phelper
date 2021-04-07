@@ -1,0 +1,24 @@
+{
+	"name": "calmu/phelper",
+	"description": "简易的通用函数汇总（simple helper function）",
+	"keywords": ["helper", "function", "通用函数"],
+	"license": "BSD-3-Clause",
+	"authors": [
+		{
+			"name": "Calvin Huang",
+			"email": "huang_calvin@163.com",
+			"homepage": "https://github.com/calmu"
+		}
+	],
+	"require": {
+		"php": "^7.0 || ^8.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"Calphelper\\": "src/"
+		},
+		"files": [
+			"src/helper.php"
+		]
+	}
+}
