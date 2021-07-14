@@ -547,4 +547,29 @@ class Arr
         $key = is_null($key) || is_array($key) ? $key : explode('.', $key);
         return [$value, $key];
     }
+
+    /********************自定义函数start*********************/
+	/**
+	 * ++++++++++++++++
+	 *  将数组上的属性变成数组的主key，注意key要唯一和不能缺失，否则会丢失数据
+	 * ++++++++++++++++
+	 *
+	 * author huang_calvin@163.com
+	 * dateTime 2021-7-14 16:55
+	 * @param array $arrs
+	 * @param string $method
+	 * @return array
+	 *
+	 */
+	public static function methodToKey(array $arrs, string $method)
+	{
+		$ret = [];
+		foreach ($arrs as $arr) {
+			if (is_array($arr) && self::has($arr, $method)) {
+				$ret[self::get($arr, $method)] = $arr;
+			}
+		}
+		return $ret;
+	}
+	/********************自定义函数end*********************/
 }
