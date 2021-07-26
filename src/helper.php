@@ -76,6 +76,22 @@ if( ! function_exists('view_hide_text')) {
 		return $str;
 	}
 }
+
+if( ! function_exists('view_hide_text_func')) {
+	/**
+	 * 回调简易返回列表的值
+	 * @param $func
+	 * @param array $argsArr
+	 * @param array $conf
+	 * @return mixed|string
+	 */
+	function view_hide_text_func($func, array $argsArr, array $conf = [])
+	{
+		$str = call_user_func_array($func, $argsArr);
+		return view_hide_text($str, $conf);
+	}
+}
+
 if( ! function_exists('view_fill_array')) {
 	/**
 	 * 简易填充默认初始值数据
