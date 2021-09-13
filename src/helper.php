@@ -107,26 +107,98 @@ if( ! function_exists('view_fill_array')) {
 		}
 	}
 }
-if( ! function_exists('super_time')) {
+
+if( ! function_exists('parse_date')) {
 	/**
-	 * 智能时间转换
-	 * @param $time
-	 * @param string $timeZone
+	 * 转换为时间对象，只能传入时间格式字符串，不能传入秒时间戳和毫秒时间戳
+	 * @param $dateStr 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将不生效
+	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
 	 * @return DateTime
 	 * @throws Exception
 	 */
-	function super_time($time, $timeZone = 'UTC')
+	function parse_date($dateStr, $timeZone = null)
 	{
-		$dateZone = new DateTimeZone($timeZone);
-		if (!is_numeric($time)) {
-			$timeObj = new DateTime($time, $dateZone);
-		} else {
-			$timeObj = new DateTime('now', $dateZone);
-			$timeObj->setTimestamp($time);
+		if ( ! $timeZone instanceof \DateTimeZone) {
+			$timeZone = empty($timeZone) ? null : new \DateTimeZone($timeZone);
 		}
-		return $timeObj;
+		return new \DateTime($dateStr, $timeZone);
 	}
 }
+
+if( ! function_exists('parse_time')) {
+	/**
+	 * 转换为时间对象, 只能传入秒时间戳和毫秒时间戳
+	 * @param $timestamp
+	 * @param bool $isMilli 是否是毫秒级别，默认true
+	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @return DateTime
+	 * @throws Exception
+	 */
+	function parse_time($timestamp, $isMilli=true, $timeZone = null)
+	{
+		if ( ! $timeZone instanceof \DateTimeZone) {
+			$timeZone = empty($timeZone) ? null : new \DateTimeZone($timeZone);
+		}
+		$dateTimeObj = new \DateTime('now', $timeZone);
+
+		if( ! $isMilli) {
+			$dateTimeObj->setTimestamp($timestamp);
+		} else {
+			$milliStr = substr($timestamp . '', -3);
+			$timestamp = substr($timestamp . '', 0, -3);
+			$dateTimeObj->setTimestamp($timestamp);
+			// 获取IOS8601的时间格式字符串，注意：这里没有毫秒字段，这里补回来
+			$dateStr = $dateTimeObj->format('c');
+			$dateStr = str_replace($dateStr[-6], ".{$milliStr}{$dateStr[-6]}", $dateStr);
+			$dateTimeObj = parse_date($dateStr, $timeZone);
+		}
+		return $dateTimeObj;
+	}
+}
+
+
+if( ! function_exists('parse_timezone')) {
+	/**
+	 * 转换为时间对象, 只能传入秒时间戳和毫秒时间戳
+	 * @param $timestamp
+	 * @param bool $isMilli 是否是毫秒级别，默认true
+	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @return DateTime
+	 * @throws Exception
+	 */
+	function parse_timezone($timeZone = null, $dateTime = null)
+	{
+		if ( ! $timeZone instanceof \DateTimeZone) {
+			$timeZone = empty($timeZone) ? null : new \DateTimeZone($timeZone);
+		}
+		$timeZone = parse_date('now', $timeZone)->getTimezone();
+		if ($dateTime instanceof \DateTime) {
+			$dateTime->setTimezone($timeZone);
+		}
+		return $timeZone;
+	}
+}
+
+if( ! function_exists('super_time')) {
+	/**
+	 * 智能时间转换,如果传入带有时区的
+	 * @param $time 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将不生效
+	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @param bool $isMilli 是否是毫秒级别，默认true
+	 * @return DateTime
+	 * @throws Exception
+	 */
+	function super_time($time, $timeZone = null, $isMilli=true)
+	{
+		if ( ! is_numeric($time)) {
+			$dateTimeObj = parse_date($time, $timeZone);
+		} else {
+			$dateTimeObj = parse_time($time, $isMilli, $timeZone);
+		}
+		return $dateTimeObj;
+	}
+}
+
 if ( ! function_exists('sample_rand_str')) {
 	/**
 	 * 简单的获取随机字符
