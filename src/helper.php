@@ -149,21 +149,38 @@ if( ! function_exists('parse_time')) {
 			$dateTimeObj->setTimestamp($timestamp);
 			// 获取IOS8601的时间格式字符串，注意：这里没有毫秒字段，这里补回来
 			$dateStr = $dateTimeObj->format('c');
-			$dateStr = str_replace($dateStr[-6], ".{$milliStr}{$dateStr[-6]}", $dateStr);
+			$dateStr = substr($dateStr, 0 , -6) . ".{$milliStr}" . substr($dateStr, -6);
 			$dateTimeObj = parse_date($dateStr, $timeZone);
 		}
 		return $dateTimeObj;
 	}
 }
 
+if( ! function_exists('iso8601_format')) {
+	/**
+	 * 将时间对象转为iso8601格式
+	 * @param bool $isMilli 是否是毫秒级别，默认true
+	 * @param \DateTime $DateTime 时间对象
+	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @return string
+	 * @throws Exception
+	 */
+	function iso8601_format($dateTime, $isMilli = true, $timeZone = 'UTC')
+	{
+		empty($timeZone) && $timeZone = 'UTC';
+		parse_timezone($timeZone, $dateTime);
+		$dateStr = $dateTime->format('c');
+		$milliStr = $isMilli ? '.' . $dateTime->format('v') : '';
+		return substr($dateStr, 0 , -6) . $milliStr . substr($dateStr, -6);
+	}
+}
 
 if( ! function_exists('parse_timezone')) {
 	/**
-	 * 转换为时间对象, 只能传入秒时间戳和毫秒时间戳
-	 * @param $timestamp
-	 * @param bool $isMilli 是否是毫秒级别，默认true
+	 * 解析时区
 	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
-	 * @return DateTime
+	 * @param \DateTime|null $DateTime 如果不为空，这里将给时间对象赋予对应的时区
+	 * @return DateTimeZone
 	 * @throws Exception
 	 */
 	function parse_timezone($timeZone = null, $dateTime = null)
