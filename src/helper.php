@@ -111,8 +111,8 @@ if( ! function_exists('view_fill_array')) {
 if( ! function_exists('parse_date')) {
 	/**
 	 * 转换为时间对象，只能传入时间格式字符串，不能传入秒时间戳和毫秒时间戳
-	 * @param $dateStr 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将不生效
-	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @param $dateStr 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将变成解析之后设置时区用
+	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式解析不带时区时间格式字符串
 	 * @return DateTime
 	 * @throws Exception
 	 */
@@ -121,7 +121,9 @@ if( ! function_exists('parse_date')) {
 		if ( ! $timeZone instanceof \DateTimeZone) {
 			$timeZone = empty($timeZone) ? null : new \DateTimeZone($timeZone);
 		}
-		return new \DateTime($dateStr, $timeZone);
+		$dateTimeObj = new \DateTime($dateStr, $timeZone);
+		parse_timezone($timeZone, $dateTimeObj);
+		return $dateTimeObj;
 	}
 }
 
@@ -186,9 +188,8 @@ if( ! function_exists('parse_timezone')) {
 	function parse_timezone($timeZone = null, $dateTime = null)
 	{
 		if ( ! $timeZone instanceof \DateTimeZone) {
-			$timeZone = empty($timeZone) ? null : new \DateTimeZone($timeZone);
+			$timeZone = empty($timeZone) ? (new \DateTime('now', $timeZone))->getTimezone() : new \DateTimeZone($timeZone);
 		}
-		$timeZone = parse_date('now', $timeZone)->getTimezone();
 		if ($dateTime instanceof \DateTime) {
 			$dateTime->setTimezone($timeZone);
 		}
@@ -199,8 +200,8 @@ if( ! function_exists('parse_timezone')) {
 if( ! function_exists('super_time')) {
 	/**
 	 * 智能时间转换,如果传入带有时区的
-	 * @param $time 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将不生效
-	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @param $time 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将变成解析之后设置时区用
+	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式解析不带时区时间格式字符串
 	 * @param bool $isMilli 是否是毫秒级别，默认true
 	 * @return DateTime
 	 * @throws Exception
