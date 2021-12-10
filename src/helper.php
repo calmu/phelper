@@ -167,13 +167,15 @@ if( ! function_exists('iso8601_format')) {
 	 * @return string
 	 * @throws Exception
 	 */
-	function iso8601_format($dateTime, $isMilli = true, $timeZone = 'UTC')
+	function iso8601_format($dateTime, $isMilli = true, $timeZone = '')
 	{
-		empty($timeZone) && $timeZone = 'UTC';
-		parse_timezone($timeZone, $dateTime);
+		// 默认使用本地时区
+		if ( ! empty($timeZone)) {
+			parse_timezone($timeZone, $dateTime);
+		}
 		$dateStr = $dateTime->format('c');
 		$milliStr = $isMilli ? '.' . $dateTime->format('v') : '';
-		return substr($dateStr, 0 , -6) . $milliStr . substr($dateStr, -6);
+		return str_replace('+00:00', 'Z', substr($dateStr, 0 , -6) . $milliStr . substr($dateStr, -6));// 零时区的话，转为Z
 	}
 }
 
