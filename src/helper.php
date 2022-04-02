@@ -111,17 +111,17 @@ if( ! function_exists('view_fill_array')) {
 if( ! function_exists('parse_date')) {
 	/**
 	 * 转换为时间对象，只能传入时间格式字符串，不能传入秒时间戳和毫秒时间戳
-	 * @param $dateStr 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将变成解析之后设置时区用
-	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式解析不带时区时间格式字符串
+	 * @param string|int $dateStr 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将变成解析之后设置时区用
+	 * @param string|DateTimeZone $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式解析不带时区时间格式字符串
 	 * @return DateTime
 	 * @throws Exception
 	 */
-	function parse_date($dateStr, $timeZone = null)
+	function parse_date($dateStr, $timeZone = null): DateTime
 	{
-		if ( ! $timeZone instanceof \DateTimeZone) {
-			$timeZone = empty($timeZone) ? null : new \DateTimeZone($timeZone);
+		if ( ! $timeZone instanceof DateTimeZone) {
+			$timeZone = empty($timeZone) ? null : new DateTimeZone($timeZone);
 		}
-		$dateTimeObj = new \DateTime($dateStr, $timeZone);
+		$dateTimeObj = new DateTime($dateStr, $timeZone);
 		parse_timezone($timeZone, $dateTimeObj);
 		return $dateTimeObj;
 	}
@@ -132,28 +132,20 @@ if( ! function_exists('parse_time')) {
 	 * 转换为时间对象, 只能传入秒时间戳和毫秒时间戳
 	 * @param $timestamp
 	 * @param bool $isMilli 是否是毫秒级别，默认true
-	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @param string|DateTimeZone $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
 	 * @return DateTime
 	 * @throws Exception
 	 */
-	function parse_time($timestamp, $isMilli=true, $timeZone = null)
+	function parse_time($timestamp, bool $isMilli=true, $timeZone = null): DateTime
 	{
-		if ( ! $timeZone instanceof \DateTimeZone) {
-			$timeZone = empty($timeZone) ? null : new \DateTimeZone($timeZone);
-		}
-		$dateTimeObj = new \DateTime('now', $timeZone);
+		$timeZone = parse_timezone($timeZone);
 
 		if( ! $isMilli) {
-			$dateTimeObj->setTimestamp($timestamp);
+			$dateTimeObj = date_create_from_format('U', strval($timestamp));
 		} else {
-			$milliStr = substr($timestamp . '', -3);
-			$timestamp = substr($timestamp . '', 0, -3);
-			$dateTimeObj->setTimestamp($timestamp);
-			// 获取IOS8601的时间格式字符串，注意：这里没有毫秒字段，这里补回来
-			$dateStr = $dateTimeObj->format('c');
-			$dateStr = substr($dateStr, 0 , -6) . ".{$milliStr}" . substr($dateStr, -6);
-			$dateTimeObj = parse_date($dateStr, $timeZone);
+			$dateTimeObj = date_create_from_format('U.v', strval(strpos($timestamp, '.') !== false ? $timestamp : $timestamp / 1000));
 		}
+		$dateTimeObj->setTimezone($timeZone);
 		return $dateTimeObj;
 	}
 }
@@ -161,38 +153,56 @@ if( ! function_exists('parse_time')) {
 if( ! function_exists('iso8601_format')) {
 	/**
 	 * 将时间对象转为iso8601格式
+	 * @param DateTime $dateTime
 	 * @param bool $isMilli 是否是毫秒级别，默认true
-	 * @param \DateTime $DateTime 时间对象
-	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @param string|DateTimeZone $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
 	 * @return string
 	 * @throws Exception
 	 */
-	function iso8601_format($dateTime, $isMilli = true, $timeZone = '')
+	function iso8601_format(DateTime $dateTime, bool $isMilli = true, $timeZone = ''): string
 	{
 		// 默认使用本地时区
 		if ( ! empty($timeZone)) {
 			parse_timezone($timeZone, $dateTime);
 		}
-		$dateStr = $dateTime->format('c');
-		$milliStr = $isMilli ? '.' . $dateTime->format('v') : '';
-		return str_replace('+00:00', 'Z', substr($dateStr, 0 , -6) . $milliStr . substr($dateStr, -6));// 零时区的话，转为Z
+		if($isMilli) {
+			return time_format_RFC3339EXTEND($dateTime);
+		}
+		return $dateTime->format(DATE_ATOM);
+	}
+}
+
+if ( ! function_exists('time_format_RFC3339EXTEND')) {
+	/**
+	 * 将时间对象转为DATE_RFC3339_EXTENDED格式
+	 * @param DateTime $dateTime 时间对象
+	 * @param string|DateTimeZone $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @return string
+	 * @throws Exception
+	 */
+	function time_format_RFC3339EXTEND(DateTime $dateTime,  $timeZone = ''): string
+	{
+		if ( ! empty($timeZone)) {
+			parse_timezone($timeZone, $dateTime);
+		}
+		return $dateTime->format(DATE_RFC3339_EXTENDED);
 	}
 }
 
 if( ! function_exists('parse_timezone')) {
 	/**
 	 * 解析时区
-	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
-	 * @param \DateTime|null $DateTime 如果不为空，这里将给时间对象赋予对应的时区
+	 * @param string|DateTimeZone $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式
+	 * @param DateTime|null $dateTime
 	 * @return DateTimeZone
 	 * @throws Exception
 	 */
-	function parse_timezone($timeZone = null, $dateTime = null)
+	function parse_timezone($timeZone = null, DateTime $dateTime = null): DateTimeZone
 	{
-		if ( ! $timeZone instanceof \DateTimeZone) {
-			$timeZone = empty($timeZone) ? (new \DateTime('now', $timeZone))->getTimezone() : new \DateTimeZone($timeZone);
+		if ( ! $timeZone instanceof DateTimeZone) {
+			$timeZone = empty($timeZone) ? new DateTimeZone(date_default_timezone_get()) : new DateTimeZone($timeZone);
 		}
-		if ($dateTime instanceof \DateTime) {
+		if ($dateTime instanceof DateTime) {
 			$dateTime->setTimezone($timeZone);
 		}
 		return $timeZone;
@@ -202,13 +212,13 @@ if( ! function_exists('parse_timezone')) {
 if( ! function_exists('super_time')) {
 	/**
 	 * 智能时间转换,如果传入带有时区的
-	 * @param $time 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将变成解析之后设置时区用
-	 * @param string $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式解析不带时区时间格式字符串
+	 * @param string|int $time 注意：如果传入带时区的ISO8601等格式的时间格式，那么参数的timezone将变成解析之后设置时区用
+	 * @param string|DateTimeZone $timeZone 可以使用UTC、Asia/Shanghai、+08:00等格式解析不带时区时间格式字符串
 	 * @param bool $isMilli 是否是毫秒级别，默认true
 	 * @return DateTime
 	 * @throws Exception
 	 */
-	function super_time($time, $timeZone = null, $isMilli=true)
+	function super_time($time, $timeZone = null, bool $isMilli=true): DateTime
 	{
 		if ( ! is_numeric($time)) {
 			$dateTimeObj = parse_date($time, $timeZone);
@@ -216,6 +226,46 @@ if( ! function_exists('super_time')) {
 			$dateTimeObj = parse_time($time, $isMilli, $timeZone);
 		}
 		return $dateTimeObj;
+	}
+}
+
+if ( ! function_exists('super_round')) {
+	/**
+	 * ++++++++++++++++
+	 *  获得除数round
+	 * ++++++++++++++++
+	 *
+	 * @param $divisor
+	 * @param null $dividend
+	 * @param int $precision
+	 * @param int $person
+	 * @param bool $filling
+	 * @return float
+	 *
+	 */
+	function super_round($divisor, $dividend = null, int $precision = 0, int $person = 1, bool $filling = true)
+	{
+		if ($divisor != 0 && $dividend != 0) {
+			$res = $divisor / $dividend;
+		} else {
+			$res = 0;
+		}
+		if ($person != 1) {
+			$res *= $person;
+		}
+		$res = round($res, $precision);
+		if ($filling && $precision) {
+			$res .= '';
+			$pointPos = strpos($res, '.');
+			if ($pointPos !== false) {
+				$subStr = substr($res, $pointPos + 1);
+				$subStrLen = strlen($subStr);
+				$precision > $subStrLen && $res .= str_repeat('0', $precision - $subStrLen);
+			} else {
+				$res .= '.' . str_repeat('0', $precision);
+			}
+		}
+		return $res;
 	}
 }
 
