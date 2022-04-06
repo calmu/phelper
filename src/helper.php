@@ -143,7 +143,7 @@ if( ! function_exists('parse_time')) {
 		if( ! $isMilli) {
 			$dateTimeObj = date_create_from_format('U', strval($timestamp));
 		} else {
-			$dateTimeObj = date_create_from_format('U.v', strval(strpos($timestamp, '.') !== false ? $timestamp : $timestamp / 1000));
+			$dateTimeObj = date_create_from_format('U.v', strval(strpos($timestamp, '.') !== false ? $timestamp : super_round($timestamp, 1000, 3)));
 		}
 		$dateTimeObj->setTimezone($timeZone);
 		return $dateTimeObj;
